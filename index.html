@@ -2,52 +2,35 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>일주 운세</title>
+<title>사주 계산기</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- 폰트 -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Diphylleia&display=swap" rel="stylesheet">
 
 <style>
 body {
-  margin: 0;
-  background: #f2f2f2;
   font-family: "Diphylleia", serif;
+  background:#f2f2f2;
+  margin:0;
 }
 
 .container {
-  max-width: 420px;
-  margin: 40px auto;
-  padding: 20px;
-  background: white;
-  border: 1px solid #000;
+  max-width:420px;
+  margin:40px auto;
+  padding:20px;
+  border:1px solid black;
+  background:white;
 }
-
-h1 { font-size: 22px; }
 
 input, select, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: 1px solid #000;
-  background: white;
-  font-family: "Diphylleia", serif;
-  box-sizing: border-box;
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:1px solid black;
+  font-family:"Diphylleia", serif;
 }
 
-button {
-  background: black;
-  color: white;
-}
-
-.hidden { display: none; }
-
-.small { font-size: 11px; margin-top: 10px; }
-
-.heart { color:#ccc; }
-.filled { color:black; }
+.hidden { display:none; }
 </style>
 </head>
 
@@ -55,88 +38,51 @@ button {
 
 <div class="container">
 
-<button onclick="toggleLang()">ENG / KOR</button>
+<h2>사주 계산</h2>
 
-<h1 id="title">일주 계산기</h1>
-
-<div id="todayText"></div>
-<div id="todayPillar"></div>
-
-<hr>
-
-<label id="birthLabel">생년월일</label>
 <input type="date" id="birthDate">
 
-<select id="calendarType">
-  <option value="solar">양력</option>
-  <option value="lunar">음력 (현재 미지원)</option>
-</select>
-
 <select id="mode">
-  <option value="modern">일반 (자정이 지나면 다음 날)</option>
-  <option value="traditional">전통 (밤 11시 지나면 다음 날)</option>
+<option value="modern">일반 (자정 기준)</option>
+<option value="traditional">전통 (23시 기준)</option>
 </select>
 
-<!-- 시간 입력 -->
 <select id="timeMode">
-  <option value="none">시간 모름</option>
-  <option value="exact">정확한 시간 입력</option>
-  <option value="range">시간대 선택</option>
+<option value="none">시간 모름</option>
+<option value="exact">시간 입력</option>
+<option value="range">시간대 선택</option>
 </select>
 
 <input type="time" id="exactTime" class="hidden">
 
 <select id="timeRange" class="hidden">
-  <option value="23">자시 (23~01)</option>
-  <option value="1">축시 (01~03)</option>
-  <option value="3">인시</option>
-  <option value="5">묘시</option>
+<option value="23">자시</option>
+<option value="1">축시</option>
+<option value="3">인시</option>
+<option value="5">묘시</option>
+<option value="7">진시</option>
+<option value="9">사시</option>
+<option value="11">오시</option>
+<option value="13">미시</option>
+<option value="15">신시</option>
+<option value="17">유시</option>
+<option value="19">술시</option>
+<option value="21">해시</option>
 </select>
 
-<!-- 전통일 때만 -->
 <select id="zasi" class="hidden">
-  <option value="normal">자시 (통합)</option>
-  <option value="early">조자시 (23~00 → 다음날)</option>
-  <option value="late">야자시 (00~01 → 이전날)</option>
+<option value="normal">자시</option>
+<option value="early">조자시</option>
+<option value="late">야자시</option>
 </select>
 
-<button onclick="calculate()">계산</button>
+<button onclick="calc()">계산</button>
 
 <div id="result"></div>
-
-<div class="small">
-※ 전통 방식은 23시 기준으로 날짜가 바뀜<br>
-※ 음력은 아직 계산 안됨
-</div>
 
 </div>
 
 <script>
-let lang = "ko";
-
-const text = {
-  ko: {
-    title:"일주 계산기",
-    today:"오늘 날짜",
-    todayPillar:"오늘 일주"
-  },
-  en: {
-    title:"Day Pillar",
-    today:"Today",
-    todayPillar:"Day Pillar"
-  }
-};
-
-function toggleLang(){
-  lang = lang==="ko"?"en":"ko";
-  updateText();
-  updateToday();
-}
-
-function updateText(){
-  document.getElementById("title").innerText = text[lang].title;
-}
-
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
 
@@ -144,6 +90,16 @@ const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
 const baseDate = new Date("2026-04-10");
 const baseIndex = cycle.indexOf("갑인");
+
+// 시지 계산
+function getHourBranch(hour){
+  return Math.floor((hour+1)/2)%12;
+}
+
+// 시천간 계산
+function getHourStem(dayStemIndex, hourBranchIndex){
+  return (dayStemIndex*2 + hourBranchIndex)%10;
+}
 
 function adjust(date,mode,zasi){
   let d=new Date(date);
@@ -156,7 +112,7 @@ function adjust(date,mode,zasi){
   return d;
 }
 
-function getPillar(date,mode,zasi){
+function getDayPillar(date,mode,zasi){
   const d=adjust(date,mode,zasi);
   const diff=Math.floor((d-baseDate)/(1000*60*60*24));
   let idx=(baseIndex+diff)%60;
@@ -164,49 +120,78 @@ function getPillar(date,mode,zasi){
   return cycle[idx];
 }
 
-function updateToday(){
-  const mode=document.getElementById("mode").value;
-  const zasi=document.getElementById("zasi").value;
-
-  const today=new Date();
-
-  document.getElementById("todayText").innerText =
-    text[lang].today+": "+today.toLocaleDateString();
-
-  document.getElementById("todayPillar").innerText =
-    text[lang].todayPillar+": "+getPillar(today,mode,zasi);
+// 연주
+function getYearPillar(year){
+  const y = (year - 4) % 60;
+  return cycle[(y+60)%60];
 }
 
-document.getElementById("mode").addEventListener("change",()=>{
-  const isTrad=document.getElementById("mode").value==="traditional";
-  document.getElementById("zasi").classList.toggle("hidden",!isTrad);
-  updateToday();
-});
+// 월주 (근사)
+function getMonthPillar(yearStemIndex, month){
+  return stems[(yearStemIndex*2 + month)%10] + branches[(month+1)%12];
+}
 
-document.getElementById("timeMode").addEventListener("change",()=>{
-  const mode=document.getElementById("timeMode").value;
-  document.getElementById("exactTime").classList.toggle("hidden",mode!=="exact");
-  document.getElementById("timeRange").classList.toggle("hidden",mode!=="range");
-});
+function calc(){
 
-function calculate(){
   const input=document.getElementById("birthDate").value;
   if(!input) return alert("날짜 입력");
 
-  const date=new Date(input);
+  let date=new Date(input);
 
   const mode=document.getElementById("mode").value;
   const zasi=document.getElementById("zasi").value;
 
-  const my=getPillar(date,mode,zasi);
-  const today=getPillar(new Date(),mode,zasi);
+  const timeMode=document.getElementById("timeMode").value;
 
-  document.getElementById("result").innerText =
-    "YOU: "+my+" / TODAY: "+today;
+  if(timeMode==="exact"){
+    const t=document.getElementById("exactTime").value;
+    if(t){
+      const [h,m]=t.split(":");
+      date.setHours(h,m);
+    }
+  }
+
+  if(timeMode==="range"){
+    const h=document.getElementById("timeRange").value;
+    date.setHours(h);
+  }
+
+  // 계산
+  const day = getDayPillar(date,mode,zasi);
+
+  const year = getYearPillar(date.getFullYear());
+
+  const yearStemIndex = stems.indexOf(year[0]);
+
+  const month = getMonthPillar(yearStemIndex, date.getMonth()+1);
+
+  let hour = date.getHours();
+  const hourBranchIndex = getHourBranch(hour);
+  const dayStemIndex = stems.indexOf(day[0]);
+
+  const hourStemIndex = getHourStem(dayStemIndex, hourBranchIndex);
+
+  const hourPillar = stems[hourStemIndex] + branches[hourBranchIndex];
+
+  document.getElementById("result").innerHTML = `
+  <b>연주:</b> ${year}<br>
+  <b>월주:</b> ${month}<br>
+  <b>일주:</b> ${day}<br>
+  <b>시주:</b> ${hourPillar}
+  `;
 }
 
-updateText();
-updateToday();
+// UI
+document.getElementById("timeMode").addEventListener("change",()=>{
+  const m=document.getElementById("timeMode").value;
+  document.getElementById("exactTime").classList.toggle("hidden",m!=="exact");
+  document.getElementById("timeRange").classList.toggle("hidden",m!=="range");
+});
+
+document.getElementById("mode").addEventListener("change",()=>{
+  const t=document.getElementById("mode").value==="traditional";
+  document.getElementById("zasi").classList.toggle("hidden",!t);
+});
 </script>
 
 </body>
