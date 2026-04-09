@@ -116,15 +116,74 @@ button { margin-top:15px; background:black; color:white; }
 </div>
 
 <script>
+
+// ===== 기본 데이터 =====
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
 
 const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
-const baseDate = new Date("2026-04-10");
-const baseIndex = cycle.indexOf("갑인");
+// ===== 기준 (검증된 기준일) =====
+// 1984-02-02 = 갑자일 (널리 쓰는 기준)
+const baseDate = new Date("1984-02-02T00:00:00");
+const baseIndex = 0; // 갑자
 
-// 날짜 보정 (자시 핵심)
+// ===== 절기 간단 테이블 (근사) =====
+// 실제 천문 계산 대신 고정값 사용
+const solarTerms = [
+  {month:2, day:4}, // 입춘
+  {month:3, day:6},
+  {month:4, day:5},
+  {month:5, day:6},
+  {month:6, day:6},
+  {month:7, day:7},
+  {month:8, day:8},
+  {month:9, day:8},
+  {month:10, day:8},
+  {month:11, day:7},
+  {month:12, day:7},
+  {month:1, day:6}
+];
+
+// ===== 절기 기준 연도 =====
+function getYear(date){
+  const y = date.getFullYear();
+  const ipchun = new Date(y,1,4); // 입춘
+
+  return date < ipchun ? y-1 : y;
+}
+
+// ===== 연주 =====
+function getYearPillar(date){
+  const year = getYear(date);
+  const idx = (year - 4) % 60;
+  return cycle[(idx+60)%60];
+}
+
+// ===== 월주 =====
+function getMonthPillar(date, yearStemIndex){
+
+  let m = date.getMonth()+1;
+  let d = date.getDate();
+
+  let termIndex = solarTerms.findIndex(t =>
+    m === t.month && d < t.day
+  );
+
+  if(termIndex === -1){
+    termIndex = solarTerms.findIndex(t => m < t.month);
+    if(termIndex === -1) termIndex = 11;
+  }
+
+  const monthBranchIndex = (termIndex + 2) % 12;
+
+  const monthStemIndex =
+    (yearStemIndex * 2 + monthBranchIndex) % 10;
+
+  return stems[monthStemIndex] + branches[monthBranchIndex];
+}
+
+// ===== 자시 처리 =====
 function adjust(date,mode,zasi){
   let d=new Date(date);
   const h=d.getHours();
@@ -136,24 +195,19 @@ function adjust(date,mode,zasi){
   return d;
 }
 
-// 일주 (핵심: -1 보정)
+// ===== 일주 =====
 function getDayPillar(date,mode,zasi){
   const d=adjust(date,mode,zasi);
+
   const diff=Math.floor((d-baseDate)/(1000*60*60*24));
 
-  let idx=(baseIndex + diff - 1)%60;
+  let idx=(baseIndex + diff)%60;
   if(idx<0) idx+=60;
 
   return cycle[idx];
 }
 
-// 연주
-function getYearPillar(year){
-  const y=(year-4)%60;
-  return cycle[(y+60)%60];
-}
-
-// 시주
+// ===== 시주 =====
 function getHourBranch(hour){
   return Math.floor((hour+1)/2)%12;
 }
@@ -170,7 +224,7 @@ function getHourPillar(date,dayStem){
   return stems[hs]+branches[hb];
 }
 
-// UI
+// ===== UI =====
 timeMode.onchange=()=>{
   exactTime.classList.toggle("hidden",timeMode.value!=="exact");
   timeRange.classList.toggle("hidden",timeMode.value!=="range");
@@ -180,7 +234,7 @@ mode.onchange=()=>{
   zasiBlock.classList.toggle("hidden",mode.value!=="traditional");
 };
 
-// 계산
+// ===== 계산 =====
 function calc(){
 
   const input=birthDate.value;
@@ -208,22 +262,31 @@ function calc(){
     date.setHours(12);
   }
 
-  const day=getDayPillar(date,modeVal,zasiVal);
-  const year=getYearPillar(date.getFullYear());
-  const hour=getHourPillar(date,day[0]);
+  // ===== 계산 =====
+  const yearP = getYearPillar(date);
+  const yearStemIndex = stems.indexOf(yearP[0]);
+
+  const monthP = getMonthPillar(date, yearStemIndex);
+
+  const dayP = getDayPillar(date,modeVal,zasiVal);
+
+  const hourP = getHourPillar(date,dayP[0]);
 
   result.innerHTML=`
-  <b>연주:</b> ${year}<br>
-  <small>태어난 해의 기운</small><br><br>
+  <b>연주:</b> ${yearP}<br>
+  <small>입춘 기준</small><br><br>
 
-  <b>일주:</b> ${day}<br>
-  <small>자신의 핵심 성격</small><br><br>
+  <b>월주:</b> ${monthP}<br>
+  <small>절기 기준 (환경/사회)</small><br><br>
 
-  <b>시주:</b> ${hour}<br>
-  <small>시간 기반 성향</small>
+  <b>일주:</b> ${dayP}<br>
+  <small>자기 본질</small><br><br>
+
+  <b>시주:</b> ${hourP}<br>
+  <small>내면/말년</small>
   `;
 }
-</script>
 
+</script>
 </body>
 </html>
