@@ -1,61 +1,62 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>오늘의 일주 계산기</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>일주 계산기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f5f6f8;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f5f6f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
 
-    .card {
-      background: white;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      width: 320px;
-    }
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  width: 340px;
+}
 
-    h2 {
-      margin-bottom: 20px;
-      font-size: 20px;
-    }
+h2 { margin-bottom: 15px; }
 
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      font-size: 14px;
-    }
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
 
-    button {
-      background: black;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-top: 15px;
-    }
+button {
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 
-    .result {
-      margin-top: 20px;
-      font-size: 16px;
-    }
+.result {
+  margin-top: 20px;
+}
 
-    .highlight {
-      font-weight: bold;
-      font-size: 18px;
-    }
-  </style>
+.highlight {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.desc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 15px;
+  line-height: 1.5;
+}
+</style>
 </head>
 
 <body>
@@ -63,60 +64,100 @@
 <div class="card">
   <h2>일주 계산기</h2>
 
+  <p>오늘 날짜: <span id="todayDate"></span></p>
+  <p>오늘 일주: <span id="todayPillar" class="highlight"></span></p>
+
+  <hr>
+
   <label>생년월일</label>
   <input type="date" id="birthDate">
 
-  <label>출생 시간 (선택)</label>
-  <input type="time" id="birthTime">
+  <label>시간 입력 방식</label>
+  <select id="timeMode">
+    <option value="none">모름 (시간 없이)</option>
+    <option value="exact">정확한 시간</option>
+    <option value="range">시간대 선택</option>
+  </select>
+
+  <input type="time" id="exactTime" style="display:none;">
+
+  <select id="timeRange" style="display:none;">
+    <option value="자">자시 (23~01)</option>
+    <option value="축">축시 (01~03)</option>
+    <option value="인">인시 (03~05)</option>
+    <option value="묘">묘시 (05~07)</option>
+    <option value="진">진시 (07~09)</option>
+    <option value="사">사시 (09~11)</option>
+    <option value="오">오시 (11~13)</option>
+    <option value="미">미시 (13~15)</option>
+    <option value="신">신시 (15~17)</option>
+    <option value="유">유시 (17~19)</option>
+    <option value="술">술시 (19~21)</option>
+    <option value="해">해시 (21~23)</option>
+  </select>
 
   <button onclick="calculate()">계산하기</button>
 
   <div class="result">
     <p>당신의 일주: <span id="userResult" class="highlight">-</span></p>
-    <p>오늘의 일주: <span id="todayResult" class="highlight">-</span></p>
+  </div>
+
+  <div class="desc">
+    ※ 이 계산기는 양력 기준으로 날짜를 계산합니다.<br>
+    ※ 전통 사주에서는 하루가 23시(자시)부터 시작되지만,<br>
+    여기서는 일반적인 자정(00시) 기준을 사용합니다.<br>
+    ※ 시간 입력은 시주 계산용이며, 현재는 일주만 계산됩니다.
   </div>
 </div>
 
 <script>
-  const stems = ["갑","을","병","정","무","기","경","신","임","계"];
-  const branches = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
+const stems = ["갑","을","병","정","무","기","경","신","임","계"];
+const branches = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
 
-  const sexagenary = Array.from({ length: 60 }, (_, i) => {
-    return stems[i % 10] + branches[i % 12];
-  });
+const sexagenary = Array.from({ length: 60 }, (_, i) => {
+  return stems[i % 10] + branches[i % 12];
+});
 
-  // 기준일: 2026-05-25 = 기해
-  const baseDate = new Date("2026-05-25");
-  const baseIndex = sexagenary.indexOf("기해");
+// 기준일: 2026-04-10 = 갑인
+const baseDate = new Date("2026-04-10");
+const baseIndex = sexagenary.indexOf("갑인");
 
-  function getDayPillar(date) {
-    const diff = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
-    let index = (baseIndex + diff) % 60;
-    if (index < 0) index += 60;
-    return sexagenary[index];
+function getDayPillar(date) {
+  const diff = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+  let index = (baseIndex + diff) % 60;
+  if (index < 0) index += 60;
+  return sexagenary[index];
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString("ko-KR");
+}
+
+// 오늘 표시
+const today = new Date();
+document.getElementById("todayDate").innerText = formatDate(today);
+document.getElementById("todayPillar").innerText = getDayPillar(today);
+
+// 시간 입력 UI 토글
+document.getElementById("timeMode").addEventListener("change", function() {
+  const mode = this.value;
+  document.getElementById("exactTime").style.display = (mode === "exact") ? "block" : "none";
+  document.getElementById("timeRange").style.display = (mode === "range") ? "block" : "none";
+});
+
+function calculate() {
+  const input = document.getElementById("birthDate").value;
+
+  if (!input) {
+    alert("생년월일 입력하세요");
+    return;
   }
 
-  function getTodayPillar() {
-    const today = new Date();
-    return getDayPillar(today);
-  }
+  const date = new Date(input);
+  const result = getDayPillar(date);
 
-  function calculate() {
-    const input = document.getElementById("birthDate").value;
-
-    if (!input) {
-      alert("생년월일을 입력하세요");
-      return;
-    }
-
-    const date = new Date(input);
-    const result = getDayPillar(date);
-
-    document.getElementById("userResult").innerText = result;
-  }
-
-  // 페이지 로드 시 오늘 일주 표시
-  document.getElementById("todayResult").innerText = getTodayPillar();
+  document.getElementById("userResult").innerText = result;
+}
 </script>
 
 </body>
