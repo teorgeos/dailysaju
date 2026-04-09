@@ -25,16 +25,7 @@ body {
   border: 1px solid #000;
 }
 
-h1 {
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #000;
-  margin: 15px 0;
-}
+h1 { font-size: 22px; }
 
 input, select, button {
   width: 100%;
@@ -43,46 +34,20 @@ input, select, button {
   border: 1px solid #000;
   background: white;
   font-family: "Diphylleia", serif;
+  box-sizing: border-box;
 }
 
 button {
   background: black;
   color: white;
-  cursor: pointer;
 }
 
-.section {
-  margin-top: 20px;
-}
+.hidden { display: none; }
 
-.label {
-  font-size: 13px;
-  margin-top: 10px;
-}
+.small { font-size: 11px; margin-top: 10px; }
 
-.heart {
-  color: #ccc;
-  font-size: 18px;
-}
-
-.filled {
-  color: black;
-}
-
-.fortune-item {
-  margin-top: 15px;
-}
-
-.desc {
-  font-size: 12px;
-  margin-top: 5px;
-}
-
-.small {
-  font-size: 11px;
-  margin-top: 10px;
-  line-height: 1.5;
-}
+.heart { color:#ccc; }
+.filled { color:black; }
 </style>
 </head>
 
@@ -90,150 +55,158 @@ button {
 
 <div class="container">
 
-<h1>DAY PILLAR</h1>
+<button onclick="toggleLang()">ENG / KOR</button>
 
-<div id="today"></div>
+<h1 id="title">일주 계산기</h1>
+
+<div id="todayText"></div>
 <div id="todayPillar"></div>
 
 <hr>
 
-<div class="section">
-  <div class="label">BIRTH DATE</div>
-  <input type="date" id="birthDate">
+<label id="birthLabel">생년월일</label>
+<input type="date" id="birthDate">
 
-  <div class="label">CALCULATION MODE</div>
-  <select id="mode">
-    <option value="modern">일반 (자정 기준)</option>
-    <option value="traditional">전통 (23시 기준)</option>
-  </select>
+<select id="calendarType">
+  <option value="solar">양력</option>
+  <option value="lunar">음력 (현재 미지원)</option>
+</select>
 
-  <div class="label">ZI MODE</div>
-  <select id="zasi">
-    <option value="normal">자시 (23~01)</option>
-    <option value="early">조자시 (23~00 → 다음날)</option>
-    <option value="late">야자시 (00~01 → 이전날)</option>
-  </select>
+<select id="mode">
+  <option value="modern">일반 (자정이 지나면 다음 날)</option>
+  <option value="traditional">전통 (밤 11시 지나면 다음 날)</option>
+</select>
 
-  <button onclick="calculate()">CALCULATE</button>
-</div>
+<!-- 시간 입력 -->
+<select id="timeMode">
+  <option value="none">시간 모름</option>
+  <option value="exact">정확한 시간 입력</option>
+  <option value="range">시간대 선택</option>
+</select>
 
-<hr>
+<input type="time" id="exactTime" class="hidden">
+
+<select id="timeRange" class="hidden">
+  <option value="23">자시 (23~01)</option>
+  <option value="1">축시 (01~03)</option>
+  <option value="3">인시</option>
+  <option value="5">묘시</option>
+</select>
+
+<!-- 전통일 때만 -->
+<select id="zasi" class="hidden">
+  <option value="normal">자시 (통합)</option>
+  <option value="early">조자시 (23~00 → 다음날)</option>
+  <option value="late">야자시 (00~01 → 이전날)</option>
+</select>
+
+<button onclick="calculate()">계산</button>
 
 <div id="result"></div>
 
 <div class="small">
-※ 전통 방식은 밤 11시부터 날짜가 바뀝니다.<br>
-※ 자시 구간에 따라 하루 해석이 달라질 수 있습니다.
+※ 전통 방식은 23시 기준으로 날짜가 바뀜<br>
+※ 음력은 아직 계산 안됨
 </div>
 
 </div>
 
 <script>
-const stems = ["갑","을","병","정","무","기","경","신","임","계"];
-const branches = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
+let lang = "ko";
 
-const sexagenary = Array.from({ length: 60 }, (_, i) =>
-  stems[i % 10] + branches[i % 12]
-);
-
-// 기준일
-const baseDate = new Date("2026-04-10");
-const baseIndex = sexagenary.indexOf("갑인");
-
-function adjust(date, mode, zasi) {
-  let d = new Date(date);
-
-  if (mode === "traditional") {
-    const h = d.getHours();
-
-    if (h >= 23 && (zasi === "normal" || zasi === "early")) {
-      d.setDate(d.getDate() + 1);
-    }
-
-    if (h < 1 && zasi === "late") {
-      d.setDate(d.getDate() - 1);
-    }
+const text = {
+  ko: {
+    title:"일주 계산기",
+    today:"오늘 날짜",
+    todayPillar:"오늘 일주"
+  },
+  en: {
+    title:"Day Pillar",
+    today:"Today",
+    todayPillar:"Day Pillar"
   }
+};
 
+function toggleLang(){
+  lang = lang==="ko"?"en":"ko";
+  updateText();
+  updateToday();
+}
+
+function updateText(){
+  document.getElementById("title").innerText = text[lang].title;
+}
+
+const stems=["갑","을","병","정","무","기","경","신","임","계"];
+const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
+
+const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
+
+const baseDate = new Date("2026-04-10");
+const baseIndex = cycle.indexOf("갑인");
+
+function adjust(date,mode,zasi){
+  let d=new Date(date);
+  const h=d.getHours();
+
+  if(mode==="traditional"){
+    if(h>=23 && (zasi==="normal"||zasi==="early")) d.setDate(d.getDate()+1);
+    if(h<1 && zasi==="late") d.setDate(d.getDate()-1);
+  }
   return d;
 }
 
-function getPillar(date, mode, zasi) {
-  const d = adjust(date, mode, zasi);
-  const diff = Math.floor((d - baseDate)/(1000*60*60*24));
-  let idx = (baseIndex + diff)%60;
-  if (idx<0) idx+=60;
-  return sexagenary[idx];
+function getPillar(date,mode,zasi){
+  const d=adjust(date,mode,zasi);
+  const diff=Math.floor((d-baseDate)/(1000*60*60*24));
+  let idx=(baseIndex+diff)%60;
+  if(idx<0) idx+=60;
+  return cycle[idx];
 }
 
-// 점수
-function getScore(a, b) {
-  if (a === b) return 5;
-  const diff = Math.abs(stems.indexOf(a) - stems.indexOf(b));
-  return Math.max(1, 5 - diff);
+function updateToday(){
+  const mode=document.getElementById("mode").value;
+  const zasi=document.getElementById("zasi").value;
+
+  const today=new Date();
+
+  document.getElementById("todayText").innerText =
+    text[lang].today+": "+today.toLocaleDateString();
+
+  document.getElementById("todayPillar").innerText =
+    text[lang].todayPillar+": "+getPillar(today,mode,zasi);
 }
 
-// 하트
-function hearts(score) {
-  let h = "";
-  for (let i=1;i<=5;i++) {
-    h += `<span class="heart ${i<=score?'filled':''}">♥</span>`;
-  }
-  return h;
+document.getElementById("mode").addEventListener("change",()=>{
+  const isTrad=document.getElementById("mode").value==="traditional";
+  document.getElementById("zasi").classList.toggle("hidden",!isTrad);
+  updateToday();
+});
+
+document.getElementById("timeMode").addEventListener("change",()=>{
+  const mode=document.getElementById("timeMode").value;
+  document.getElementById("exactTime").classList.toggle("hidden",mode!=="exact");
+  document.getElementById("timeRange").classList.toggle("hidden",mode!=="range");
+});
+
+function calculate(){
+  const input=document.getElementById("birthDate").value;
+  if(!input) return alert("날짜 입력");
+
+  const date=new Date(input);
+
+  const mode=document.getElementById("mode").value;
+  const zasi=document.getElementById("zasi").value;
+
+  const my=getPillar(date,mode,zasi);
+  const today=getPillar(new Date(),mode,zasi);
+
+  document.getElementById("result").innerText =
+    "YOU: "+my+" / TODAY: "+today;
 }
 
-// 설명
-function desc(type, score) {
-  const map = {
-    love:["감정 충돌 가능","조심 필요","보통","호감 상승","강한 인연"],
-    money:["손실 주의","지출 관리","보통","수입 기대","재물 상승"],
-    relation:["갈등 가능","오해 주의","무난","좋은 교류","인기 상승"],
-    job:["집중 어려움","변수 많음","보통","기회 있음","성과 상승"],
-    move:["불안정","변화 주의","보통","이동 좋음","큰 기회"]
-  };
-  return map[type][score-1];
-}
-
-function calculate() {
-  const date = new Date(document.getElementById("birthDate").value);
-  const mode = document.getElementById("mode").value;
-  const zasi = document.getElementById("zasi").value;
-
-  const my = getPillar(date, mode, zasi);
-  const today = getPillar(new Date(), mode, zasi);
-
-  const myStem = my[0];
-  const todayStem = today[0];
-
-  const scores = {
-    love: getScore(myStem, todayStem),
-    money: getScore(todayStem, myStem),
-    relation: getScore(myStem, todayStem)-1,
-    job: getScore(myStem, todayStem)-1,
-    move: getScore(myStem, todayStem)
-  };
-
-  let html = `<div><b>YOU: ${my}</b><br><b>TODAY: ${today}</b></div>`;
-
-  for (let k in scores) {
-    let s = Math.max(1, Math.min(5, scores[k]));
-    html += `
-    <div class="fortune-item">
-      <div>${k.toUpperCase()}</div>
-      ${hearts(s)}
-      <div class="desc">${desc(k,s)}</div>
-    </div>`;
-  }
-
-  document.getElementById("result").innerHTML = html;
-}
-
-// 초기 표시
-document.getElementById("today").innerText =
-  "TODAY: " + new Date().toLocaleDateString();
-
-document.getElementById("todayPillar").innerText =
-  "DAY PILLAR: " + getPillar(new Date(),"modern","normal");
+updateText();
+updateToday();
 </script>
 
 </body>
