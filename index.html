@@ -262,10 +262,96 @@ zasi.onchange=()=>{
 document.getElementById("zasiDesc").innerText=text[lang].zasiDesc[zasi.selectedIndex];
 };
 
-// 계산 (간단 유지)
+const stems=["갑","을","병","정","무","기","경","신","임","계"];
+const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
+
+const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
+
+const baseDate = new Date("2026-04-10");
+const baseIndex = cycle.indexOf("갑인");
+
+// 날짜 보정
+function adjust(date,mode,zasi){
+  let d=new Date(date);
+  const h=d.getHours();
+
+  if(mode==="traditional"){
+    if(h>=23 && (zasi==="normal"||zasi==="early")) d.setDate(d.getDate()+1);
+    if(h<1 && zasi==="late") d.setDate(d.getDate()-1);
+  }
+  return d;
+}
+
+// 일주
+function getDayPillar(date,mode,zasi){
+  const d=adjust(date,mode,zasi);
+  const diff=Math.floor((d-baseDate)/(1000*60*60*24));
+  let idx=(baseIndex+diff)%60;
+  if(idx<0) idx+=60;
+  return cycle[idx];
+}
+
+// 연주
+function getYearPillar(year){
+  const y=(year-4)%60;
+  return cycle[(y+60)%60];
+}
+
+// 시지
+function getHourBranch(hour){
+  return Math.floor((hour+1)/2)%12;
+}
+
+// 시천간
+function getHourStem(dayStemIndex,hourBranchIndex){
+  return (dayStemIndex*2 + hourBranchIndex)%10;
+}
+
+// 시주
+function getHourPillar(date,dayStem){
+  const hour=date.getHours();
+  const hb=getHourBranch(hour);
+  const ds=stems.indexOf(dayStem);
+  const hs=getHourStem(ds,hb);
+  return stems[hs]+branches[hb];
+}
+
+// 최종 계산
 function calc(){
-const date=new Date(document.getElementById("birthDate").value);
-document.getElementById("result").innerText="계산 완료 (로직 유지)";
+
+  const input=document.getElementById("birthDate").value;
+  if(!input) return alert("날짜 입력");
+
+  let date=new Date(input);
+
+  const mode=document.getElementById("mode").value;
+  const zasi=document.getElementById("zasi").value;
+  const timeMode=document.getElementById("timeMode").value;
+
+  // 시간 반영
+  if(timeMode==="exact"){
+    const t=document.getElementById("exactTime").value;
+    if(t){
+      const [h,m]=t.split(":");
+      date.setHours(h,m);
+    }
+  }
+
+  if(timeMode==="range"){
+    const h=document.getElementById("timeRange").value;
+    date.setHours(h);
+  }
+
+  // 계산
+  const day=getDayPillar(date,mode,zasi);
+  const year=getYearPillar(date.getFullYear());
+  const hour=getHourPillar(date,day[0]);
+
+  document.getElementById("result").innerHTML = `
+  <b>연주:</b> ${year}<br>
+  <b>일주:</b> ${day}<br>
+  <b>시주:</b> ${hour}
+  `;
 }
 </script>
 
