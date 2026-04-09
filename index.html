@@ -2,31 +2,39 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>일주 계산기</title>
+<title>Day Pillar Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, sans-serif;
   background: #f5f6f8;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  margin: 0;
 }
 
 .card {
   background: white;
   padding: 25px;
   border-radius: 20px;
+  width: 360px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  width: 340px;
 }
 
-h2 { margin-bottom: 15px; }
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+  background: black;
+  color: white;
+  cursor: pointer;
+}
 
-input, select, button {
+input, select {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
@@ -34,27 +42,10 @@ input, select, button {
   border: 1px solid #ddd;
 }
 
-button {
-  background: black;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.result {
-  margin-top: 20px;
-}
-
-.highlight {
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.desc {
+.small {
   font-size: 12px;
   color: #666;
-  margin-top: 15px;
-  line-height: 1.5;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -62,102 +53,129 @@ button {
 <body>
 
 <div class="card">
-  <h2>일주 계산기</h2>
 
-  <p>오늘 날짜: <span id="todayDate"></span></p>
-  <p>오늘 일주: <span id="todayPillar" class="highlight"></span></p>
+<button onclick="toggleLang()">ENG / KOR</button>
 
-  <hr>
+<h3 id="title">일주 계산기</h3>
 
-  <label>생년월일</label>
-  <input type="date" id="birthDate">
+<p id="todayText"></p>
+<p id="todayPillar"></p>
 
-  <label>시간 입력 방식</label>
-  <select id="timeMode">
-    <option value="none">모름 (시간 없이)</option>
-    <option value="exact">정확한 시간</option>
-    <option value="range">시간대 선택</option>
-  </select>
+<hr>
 
-  <input type="time" id="exactTime" style="display:none;">
+<input type="date" id="birthDate">
 
-  <select id="timeRange" style="display:none;">
-    <option value="자">자시 (23~01)</option>
-    <option value="축">축시 (01~03)</option>
-    <option value="인">인시 (03~05)</option>
-    <option value="묘">묘시 (05~07)</option>
-    <option value="진">진시 (07~09)</option>
-    <option value="사">사시 (09~11)</option>
-    <option value="오">오시 (11~13)</option>
-    <option value="미">미시 (13~15)</option>
-    <option value="신">신시 (15~17)</option>
-    <option value="유">유시 (17~19)</option>
-    <option value="술">술시 (19~21)</option>
-    <option value="해">해시 (21~23)</option>
-  </select>
+<select id="calcMode">
+  <option value="modern">일반 방식 (자정 기준)</option>
+  <option value="traditional">전통 방식 (자시 기준)</option>
+</select>
 
-  <button onclick="calculate()">계산하기</button>
+<select id="zasiMode">
+  <option value="normal">자시 (23~01 통합)</option>
+  <option value="early">조자시 (23~00 → 다음날)</option>
+  <option value="late">야자시 (00~01 → 이전날)</option>
+</select>
 
-  <div class="result">
-    <p>당신의 일주: <span id="userResult" class="highlight">-</span></p>
-  </div>
+<button onclick="calculate()" id="calcBtn">계산하기</button>
 
-  <div class="desc">
-    ※ 이 계산기는 양력 기준으로 날짜를 계산합니다.<br>
-    ※ 전통 사주에서는 하루가 23시(자시)부터 시작되지만,<br>
-    여기서는 일반적인 자정(00시) 기준을 사용합니다.<br>
-    ※ 시간 입력은 시주 계산용이며, 현재는 일주만 계산됩니다.
-  </div>
+<p id="result"></p>
+
+<div class="small" id="desc"></div>
+
 </div>
 
 <script>
 const stems = ["갑","을","병","정","무","기","경","신","임","계"];
 const branches = ["자","축","인","묘","진","사","오","미","신","유","술","해"];
 
-const sexagenary = Array.from({ length: 60 }, (_, i) => {
-  return stems[i % 10] + branches[i % 12];
-});
+const sexagenary = Array.from({ length: 60 }, (_, i) =>
+  stems[i % 10] + branches[i % 12]
+);
 
 // 기준일: 2026-04-10 = 갑인
 const baseDate = new Date("2026-04-10");
 const baseIndex = sexagenary.indexOf("갑인");
 
-function getDayPillar(date) {
-  const diff = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+let lang = "ko";
+
+const text = {
+  ko: {
+    title: "일주 계산기",
+    today: "오늘 날짜",
+    todayPillar: "오늘 일주",
+    result: "당신의 일주",
+    btn: "계산하기",
+    desc: "※ 전통 방식은 자시(23시)를 기준으로 날짜가 바뀝니다.\n※ 조자시: 다음날, 야자시: 이전날로 계산됩니다."
+  },
+  en: {
+    title: "Day Pillar Calculator",
+    today: "Today",
+    todayPillar: "Today's Day Pillar",
+    result: "Your Day Pillar",
+    btn: "Calculate",
+    desc: "※ Traditional method uses 23:00 as day boundary.\n※ Early Zi = next day, Late Zi = previous day."
+  }
+};
+
+function updateText() {
+  document.getElementById("title").innerText = text[lang].title;
+  document.getElementById("calcBtn").innerText = text[lang].btn;
+  document.getElementById("desc").innerText = text[lang].desc;
+}
+
+function toggleLang() {
+  lang = lang === "ko" ? "en" : "ko";
+  updateText();
+}
+
+function getDayPillar(date, mode, zasiMode) {
+  let d = new Date(date);
+
+  if (mode === "traditional") {
+    const hour = d.getHours();
+
+    if (hour >= 23) {
+      if (zasiMode === "early" || zasiMode === "normal") {
+        d.setDate(d.getDate() + 1);
+      }
+    } else if (hour < 1) {
+      if (zasiMode === "late") {
+        d.setDate(d.getDate() - 1);
+      }
+    }
+  }
+
+  const diff = Math.floor((d - baseDate) / (1000 * 60 * 60 * 24));
   let index = (baseIndex + diff) % 60;
   if (index < 0) index += 60;
+
   return sexagenary[index];
 }
 
-function formatDate(date) {
-  return date.toLocaleDateString("ko-KR");
+function calculate() {
+  const input = document.getElementById("birthDate").value;
+  const mode = document.getElementById("calcMode").value;
+  const zasiMode = document.getElementById("zasiMode").value;
+
+  if (!input) return alert("날짜 입력");
+
+  const date = new Date(input);
+  const result = getDayPillar(date, mode, zasiMode);
+
+  document.getElementById("result").innerText =
+    text[lang].result + ": " + result;
 }
 
 // 오늘 표시
 const today = new Date();
-document.getElementById("todayDate").innerText = formatDate(today);
-document.getElementById("todayPillar").innerText = getDayPillar(today);
+document.getElementById("todayText").innerText =
+  text[lang].today + ": " + today.toLocaleDateString();
 
-// 시간 입력 UI 토글
-document.getElementById("timeMode").addEventListener("change", function() {
-  const mode = this.value;
-  document.getElementById("exactTime").style.display = (mode === "exact") ? "block" : "none";
-  document.getElementById("timeRange").style.display = (mode === "range") ? "block" : "none";
-});
+document.getElementById("todayPillar").innerText =
+  text[lang].todayPillar + ": " +
+  getDayPillar(today, "modern", "normal");
 
-function calculate() {
-  const input = document.getElementById("birthDate").value;
-
-  if (!input) {
-    alert("생년월일 입력하세요");
-    return;
-  }
-
-  const date = new Date(input);
-  const result = getDayPillar(date);
-
-  document.getElementById("userResult").innerText = result;
-}
+updateText();
 </script>
 
 </body>
