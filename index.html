@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Day Pillar Calculator</title>
+<title>일주 계산기</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -23,18 +23,7 @@ body {
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
-button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 10px;
-  border: none;
-  background: black;
-  color: white;
-  cursor: pointer;
-}
-
-input, select {
+input, select, button {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
@@ -42,10 +31,18 @@ input, select {
   border: 1px solid #ddd;
 }
 
+button {
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
 .small {
   font-size: 12px;
   color: #666;
   margin-top: 10px;
+  line-height: 1.5;
 }
 </style>
 </head>
@@ -66,14 +63,14 @@ input, select {
 <input type="date" id="birthDate">
 
 <select id="calcMode">
-  <option value="modern">일반 방식 (자정 기준)</option>
-  <option value="traditional">전통 방식 (자시 기준)</option>
+  <option value="modern">일반 방식 (자정 기준, 우리가 쓰는 날짜 기준)</option>
+  <option value="traditional">전통 방식 (밤 11시 이후 다음 날로 계산)</option>
 </select>
 
 <select id="zasiMode">
-  <option value="normal">자시 (23~01 통합)</option>
-  <option value="early">조자시 (23~00 → 다음날)</option>
-  <option value="late">야자시 (00~01 → 이전날)</option>
+  <option value="normal">자시 (23~01, 통합 처리)</option>
+  <option value="early">조자시 (23~00, 이 시간에 태어나면 다음 날로 봄)</option>
+  <option value="late">야자시 (00~01, 이 시간에 태어나면 이전 날로 봄)</option>
 </select>
 
 <button onclick="calculate()" id="calcBtn">계산하기</button>
@@ -105,7 +102,7 @@ const text = {
     todayPillar: "오늘 일주",
     result: "당신의 일주",
     btn: "계산하기",
-    desc: "※ 전통 방식은 자시(23시)를 기준으로 날짜가 바뀝니다.\n※ 조자시: 다음날, 야자시: 이전날로 계산됩니다."
+    desc: "※ 전통 방식은 밤 11시부터 다음 날로 계산합니다.\n※ 자시 선택에 따라 날짜 해석이 달라집니다."
   },
   en: {
     title: "Day Pillar Calculator",
@@ -113,7 +110,7 @@ const text = {
     todayPillar: "Today's Day Pillar",
     result: "Your Day Pillar",
     btn: "Calculate",
-    desc: "※ Traditional method uses 23:00 as day boundary.\n※ Early Zi = next day, Late Zi = previous day."
+    desc: "※ Traditional method treats 23:00 as next day.\n※ Zi-hour option changes date interpretation."
   }
 };
 
@@ -126,9 +123,10 @@ function updateText() {
 function toggleLang() {
   lang = lang === "ko" ? "en" : "ko";
   updateText();
+  updateToday();
 }
 
-function getDayPillar(date, mode, zasiMode) {
+function getAdjustedDate(date, mode, zasiMode) {
   let d = new Date(date);
 
   if (mode === "traditional") {
@@ -145,11 +143,31 @@ function getDayPillar(date, mode, zasiMode) {
     }
   }
 
+  return d;
+}
+
+function getDayPillar(date, mode, zasiMode) {
+  const d = getAdjustedDate(date, mode, zasiMode);
+
   const diff = Math.floor((d - baseDate) / (1000 * 60 * 60 * 24));
   let index = (baseIndex + diff) % 60;
   if (index < 0) index += 60;
 
   return sexagenary[index];
+}
+
+function updateToday() {
+  const mode = document.getElementById("calcMode").value;
+  const zasiMode = document.getElementById("zasiMode").value;
+
+  const today = new Date();
+
+  document.getElementById("todayText").innerText =
+    text[lang].today + ": " + today.toLocaleDateString();
+
+  document.getElementById("todayPillar").innerText =
+    text[lang].todayPillar + ": " +
+    getDayPillar(today, mode, zasiMode);
 }
 
 function calculate() {
@@ -160,22 +178,20 @@ function calculate() {
   if (!input) return alert("날짜 입력");
 
   const date = new Date(input);
+
   const result = getDayPillar(date, mode, zasiMode);
 
   document.getElementById("result").innerText =
     text[lang].result + ": " + result;
 }
 
-// 오늘 표시
-const today = new Date();
-document.getElementById("todayText").innerText =
-  text[lang].today + ": " + today.toLocaleDateString();
+// 이벤트 연결
+document.getElementById("calcMode").addEventListener("change", updateToday);
+document.getElementById("zasiMode").addEventListener("change", updateToday);
 
-document.getElementById("todayPillar").innerText =
-  text[lang].todayPillar + ": " +
-  getDayPillar(today, "modern", "normal");
-
+// 초기 실행
 updateText();
+updateToday();
 </script>
 
 </body>
