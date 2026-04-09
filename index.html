@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>사주 계산기 ㅎ</title>
+<title>사주 계산기</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link href="https://fonts.googleapis.com/css2?family=Diphylleia&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@ body {
 
 label { font-size:13px; display:block; margin-bottom:5px; }
 
-input, select, button {
+input, select, button, textarea {
   width:100%;
   padding:10px;
   border:1px solid black;
@@ -75,22 +75,22 @@ button { margin-top:15px; background:black; color:white; }
 <input type="time" id="exactTime" class="hidden">
 
 <select id="timeRange" class="hidden">
-<option value="23">자시 (23~01)</option>
-<option value="1">축시 (01~03)</option>
-<option value="3">인시</option>
-<option value="5">묘시</option>
-<option value="7">진시</option>
-<option value="9">사시</option>
-<option value="11">오시</option>
-<option value="13">미시</option>
-<option value="15">신시</option>
-<option value="17">유시</option>
-<option value="19">술시</option>
-<option value="21">해시</option>
+<option value="23">자시 (23:00~01:00)</option>
+<option value="1">축시 (01:00~03:00)</option>
+<option value="3">인시 (03:00~05:00)</option>
+<option value="5">묘시 (05:00~07:00)</option>
+<option value="7">진시 (07:00~09:00)</option>
+<option value="9">사시 (09:00~11:00)</option>
+<option value="11">오시 (11:00~13:00)</option>
+<option value="13">미시 (13:00~15:00)</option>
+<option value="15">신시 (15:00~17:00)</option>
+<option value="17">유시 (17:00~19:00)</option>
+<option value="19">술시 (19:00~21:00)</option>
+<option value="21">해시 (21:00~23:00)</option>
 </select>
 
 <div class="desc">
-👉 시간 모르면 “모름” 선택 (자동으로 낮 12시 처리)
+👉 시간 모르면 “모름” 선택 (낮 12시 처리)
 </div>
 </div>
 
@@ -101,59 +101,36 @@ button { margin-top:15px; background:black; color:white; }
 <option value="early">조자시</option>
 <option value="late">야자시</option>
 </select>
-
-<div class="desc">
-👉 조자시: 23~00 → 다음날<br>
-👉 야자시: 00~01 → 이전날<br>
-👉 정확히 모르면 “자시 통합”
-</div>
 </div>
 
 <button onclick="calc()">계산</button>
 
 <div id="result" style="margin-top:20px;"></div>
 
+<div style="margin-top:20px;">
+  <button onclick="copyPrompt()">프롬프트 복사</button>
+  <textarea id="promptBox" style="margin-top:10px; height:150px;"></textarea>
+</div>
+
 </div>
 
 <script>
 
-// ===== 기본 데이터 =====
+// ===== 기본 =====
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
-
 const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
-// ===== 기준 (검증된 기준일) =====
-// 1984-02-02 = 갑자일 (널리 쓰는 기준)
 const baseDate = new Date("1984-02-02T00:00:00");
-const baseIndex = 0; // 갑자
+const baseIndex = 0;
 
-// ===== 절기 간단 테이블 (근사) =====
-// 실제 천문 계산 대신 고정값 사용
-const solarTerms = [
-  {month:2, day:4}, // 입춘
-  {month:3, day:6},
-  {month:4, day:5},
-  {month:5, day:6},
-  {month:6, day:6},
-  {month:7, day:7},
-  {month:8, day:8},
-  {month:9, day:8},
-  {month:10, day:8},
-  {month:11, day:7},
-  {month:12, day:7},
-  {month:1, day:6}
-];
-
-// ===== 절기 기준 연도 =====
+// ===== 연주 =====
 function getYear(date){
   const y = date.getFullYear();
-  const ipchun = new Date(y,1,4); // 입춘
-
+  const ipchun = new Date(y,1,4);
   return date < ipchun ? y-1 : y;
 }
 
-// ===== 연주 =====
 function getYearPillar(date){
   const year = getYear(date);
   const idx = (year - 4) % 60;
@@ -162,28 +139,12 @@ function getYearPillar(date){
 
 // ===== 월주 =====
 function getMonthPillar(date, yearStemIndex){
-
-  let m = date.getMonth()+1;
-  let d = date.getDate();
-
-  let termIndex = solarTerms.findIndex(t =>
-    m === t.month && d < t.day
-  );
-
-  if(termIndex === -1){
-    termIndex = solarTerms.findIndex(t => m < t.month);
-    if(termIndex === -1) termIndex = 11;
-  }
-
-  const monthBranchIndex = (termIndex + 2) % 12;
-
-  const monthStemIndex =
-    (yearStemIndex * 2 + monthBranchIndex) % 10;
-
-  return stems[monthStemIndex] + branches[monthBranchIndex];
+  const monthBranchIndex = (date.getMonth()+2)%12;
+  const monthStemIndex = (yearStemIndex*2 + monthBranchIndex)%10;
+  return stems[monthStemIndex]+branches[monthBranchIndex];
 }
 
-// ===== 자시 처리 =====
+// ===== 자시 =====
 function adjust(date,mode,zasi){
   let d=new Date(date);
   const h=d.getHours();
@@ -198,12 +159,9 @@ function adjust(date,mode,zasi){
 // ===== 일주 =====
 function getDayPillar(date,mode,zasi){
   const d=adjust(date,mode,zasi);
-
   const diff=Math.floor((d-baseDate)/(1000*60*60*24));
-
   let idx=(baseIndex + diff)%60;
   if(idx<0) idx+=60;
-
   return cycle[idx];
 }
 
@@ -262,31 +220,53 @@ function calc(){
     date.setHours(12);
   }
 
-  // ===== 계산 =====
   const yearP = getYearPillar(date);
   const yearStemIndex = stems.indexOf(yearP[0]);
-
   const monthP = getMonthPillar(date, yearStemIndex);
-
   const dayP = getDayPillar(date,modeVal,zasiVal);
-
   const hourP = getHourPillar(date,dayP[0]);
 
+  window.lastResult = { year:yearP, month:monthP, day:dayP, hour:hourP };
+
   result.innerHTML=`
-  <b>연주:</b> ${yearP}<br>
-  <small>입춘 기준</small><br><br>
-
-  <b>월주:</b> ${monthP}<br>
-  <small>절기 기준 (환경/사회)</small><br><br>
-
-  <b>일주:</b> ${dayP}<br>
-  <small>자기 본질</small><br><br>
-
-  <b>시주:</b> ${hourP}<br>
-  <small>내면/말년</small>
+  <b>연주:</b> ${yearP}<br><br>
+  <b>월주:</b> ${monthP}<br><br>
+  <b>일주:</b> ${dayP}<br><br>
+  <b>시주:</b> ${hourP}
   `;
 }
 
+// ===== 프롬프트 =====
+function generatePrompt(){
+
+  if(!window.lastResult) return "먼저 계산하세요";
+
+  const {year, month, day, hour} = window.lastResult;
+
+  const today = new Date().toISOString().split("T")[0];
+
+  return `나의 일간은 '${day}'이고, 연주는 '${year}', 월주는 '${month}', 시주는 '${hour}'이야.
+오늘은 '${today}'이야.
+
+내 운세를 아래 항목으로 나눠서 구체적으로 분석해줘:
+- 연애운
+- 인간관계
+- 금전운
+- 직장/취업운
+
+가능하면 현실적인 조언 중심으로 써줘.`;
+}
+
+function copyPrompt(){
+  const prompt = generatePrompt();
+  document.getElementById("promptBox").value = prompt;
+
+  navigator.clipboard.writeText(prompt)
+    .then(()=> alert("복사됨"))
+    .catch(()=> alert("복사 실패"));
+}
+
 </script>
+
 </body>
 </html>
