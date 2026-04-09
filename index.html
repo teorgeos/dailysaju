@@ -66,28 +66,27 @@ button {
 
 <button onclick="toggleLang()" class="lang-btn" id="langBtn">ENG</button>
 
-<h2 id="title">사주 계산기</h2>
+<h2 id="title"></h2>
 
 <!-- 생년월일 -->
 <div class="block">
-<label id="birthLabel">생년월일</label>
+<label id="birthLabel"></label>
 <input type="date" id="birthDate">
 </div>
 
 <!-- 방식 -->
 <div class="block">
-<label id="modeLabel">날짜 계산 방식</label>
+<label id="modeLabel"></label>
 <select id="mode"></select>
 <div class="desc" id="modeDesc"></div>
 </div>
 
-<!-- 시간 입력 -->
+<!-- 시간 -->
 <div class="block">
-<label id="timeLabel">출생 시간</label>
+<label id="timeLabel"></label>
 <select id="timeMode"></select>
 
 <input type="time" id="exactTime" class="hidden">
-
 <select id="timeRange" class="hidden"></select>
 
 <div class="desc" id="timeDesc"></div>
@@ -95,12 +94,12 @@ button {
 
 <!-- 자시 -->
 <div class="block hidden" id="zasiBlock">
-<label id="zasiLabel">자시 처리 방식</label>
+<label id="zasiLabel"></label>
 <select id="zasi"></select>
 <div class="desc" id="zasiDesc"></div>
 </div>
 
-<button onclick="calc()" id="calcBtn">계산하기</button>
+<button onclick="calc()" id="calcBtn"></button>
 
 <div id="result" style="margin-top:20px;"></div>
 
@@ -120,7 +119,7 @@ mode:[
 ],
 modeDesc:[
 "우리가 쓰는 일반 달력 기준",
-"사주에서 사용하는 전통 기준 (밤 11시부터 다음 날로 봄)"
+"사주 기준 (밤 11시부터 다음 날)"
 ],
 timeLabel:"출생 시간",
 timeMode:[
@@ -129,57 +128,49 @@ timeMode:[
 "시간대 선택 (2시간 단위)"
 ],
 timeDesc:[
-"시간 없이 일주만 계산",
-"정확한 시각 입력 (가장 정확)",
-"대략적인 시간대 선택 (예: 오전/오후 느낌)"
+"시간 없이 계산 (기본값 12시 적용)",
+"가장 정확한 방법",
+"대략적인 시간대 선택"
 ],
 zasiLabel:"자시 처리",
 zasi:[
-"자시 통합 (23~01 모두 다음 날 처리)",
-"조자시 (23~00 → 다음 날)",
-"야자시 (00~01 → 이전 날)"
+"자시 통합",
+"조자시 (23~00 → 다음날)",
+"야자시 (00~01 → 이전날)"
 ],
-zasiDesc:[
-"자시를 하나로 묶어 계산",
-"밤 11시~자정은 다음 날로 계산",
-"자정~새벽1시는 이전 날로 계산"
-],
+zasiDesc:"자시: 23~01 / 조자시: 다음날 / 야자시: 이전날",
 calc:"계산하기"
 },
 en:{
 title:"Saju Calculator",
 birth:"Birth Date",
-modeLabel:"Day Calculation Mode",
+modeLabel:"Day Calculation",
 mode:[
 "Modern (day changes at 00:00)",
 "Traditional (day changes at 23:00)"
 ],
 modeDesc:[
-"Standard calendar system",
-"Traditional Saju system (day starts at 23:00)"
+"Standard calendar",
+"Saju traditional rule"
 ],
 timeLabel:"Birth Time",
 timeMode:[
 "No time",
 "Exact time",
-"Time range (2-hour blocks)"
+"Time range"
 ],
 timeDesc:[
-"Calculate without time",
+"Uses default 12:00",
 "Most accurate",
-"Approximate time block"
+"Approximate"
 ],
-zasiLabel:"Zi Hour Handling",
+zasiLabel:"Zi Hour",
 zasi:[
 "Unified Zi",
-"Early Zi (next day)",
-"Late Zi (previous day)"
+"Early Zi",
+"Late Zi"
 ],
-zasiDesc:[
-"Treat as one block",
-"23:00~00:00 = next day",
-"00:00~01:00 = previous day"
-],
+zasiDesc:"Zi:23~01 / Early:next / Late:prev",
 calc:"Calculate"
 }
 };
@@ -187,80 +178,71 @@ calc:"Calculate"
 function render(){
 const t=text[lang];
 
-document.getElementById("title").innerText=t.title;
-document.getElementById("birthLabel").innerText=t.birth;
-document.getElementById("modeLabel").innerText=t.modeLabel;
-document.getElementById("timeLabel").innerText=t.timeLabel;
-document.getElementById("zasiLabel").innerText=t.zasiLabel;
-document.getElementById("calcBtn").innerText=t.calc;
+title.innerText=t.title;
+birthLabel.innerText=t.birth;
+modeLabel.innerText=t.modeLabel;
+timeLabel.innerText=t.timeLabel;
+zasiLabel.innerText=t.zasiLabel;
+calcBtn.innerText=t.calc;
 
-// mode
-const mode=document.getElementById("mode");
 mode.innerHTML="";
 t.mode.forEach((m,i)=>{
 mode.innerHTML+=`<option value="${i===0?'modern':'traditional'}">${m}</option>`;
 });
-document.getElementById("modeDesc").innerText=t.modeDesc[mode.selectedIndex];
+modeDesc.innerText=t.modeDesc[0];
 
-// timeMode
-const tm=document.getElementById("timeMode");
-tm.innerHTML="";
+timeMode.innerHTML="";
 t.timeMode.forEach((m,i)=>{
-tm.innerHTML+=`<option value="${['none','exact','range'][i]}">${m}</option>`;
+timeMode.innerHTML+=`<option value="${['none','exact','range'][i]}">${m}</option>`;
 });
-document.getElementById("timeDesc").innerText=t.timeDesc[0];
+timeDesc.innerText=t.timeDesc[0];
 
-// zasi
-const z=document.getElementById("zasi");
-z.innerHTML="";
+zasi.innerHTML="";
 t.zasi.forEach((m,i)=>{
-z.innerHTML+=`<option value="${['normal','early','late'][i]}">${m}</option>`;
+zasi.innerHTML+=`<option value="${['normal','early','late'][i]}">${m}</option>`;
 });
-document.getElementById("zasiDesc").innerText=t.zasiDesc[0];
+zasiDesc.innerText=t.zasiDesc;
 
-// 시간대
-const tr=document.getElementById("timeRange");
-tr.innerHTML=`
-<option value="23">자시 (23:00~01:00)</option>
-<option value="1">축시 (01:00~03:00)</option>
-<option value="3">인시 (03:00~05:00)</option>
-<option value="5">묘시 (05:00~07:00)</option>
-<option value="7">진시 (07:00~09:00)</option>
-<option value="9">사시 (09:00~11:00)</option>
-<option value="11">오시 (11:00~13:00)</option>
-<option value="13">미시 (13:00~15:00)</option>
-<option value="15">신시 (15:00~17:00)</option>
-<option value="17">유시 (17:00~19:00)</option>
-<option value="19">술시 (19:00~21:00)</option>
-<option value="21">해시 (21:00~23:00)</option>
+timeRange.innerHTML=`
+<option value="23">자시 (23~01)</option>
+<option value="1">축시 (01~03)</option>
+<option value="3">인시 (03~05)</option>
+<option value="5">묘시 (05~07)</option>
+<option value="7">진시 (07~09)</option>
+<option value="9">사시 (09~11)</option>
+<option value="11">오시 (11~13)</option>
+<option value="13">미시 (13~15)</option>
+<option value="15">신시 (15~17)</option>
+<option value="17">유시 (17~19)</option>
+<option value="19">술시 (19~21)</option>
+<option value="21">해시 (21~23)</option>
 `;
 
-document.getElementById("langBtn").innerText=lang==="ko"?"ENG":"KOR";
+langBtn.innerText=lang==="ko"?"ENG":"KOR";
 }
 
 function toggleLang(){
 lang=lang==="ko"?"en":"ko";
 render();
+updateToday();
 }
 
 render();
 
 // 이벤트
 mode.onchange=()=>{
-const isTrad=mode.value==="traditional";
-document.getElementById("zasiBlock").classList.toggle("hidden",!isTrad);
-document.getElementById("modeDesc").innerText=text[lang].modeDesc[mode.selectedIndex];
+zasiBlock.classList.toggle("hidden",mode.value!=="traditional");
+modeDesc.innerText=text[lang].modeDesc[mode.selectedIndex];
+updateToday();
 };
 
 timeMode.onchange=()=>{
 exactTime.classList.toggle("hidden",timeMode.value!=="exact");
 timeRange.classList.toggle("hidden",timeMode.value!=="range");
-document.getElementById("timeDesc").innerText=text[lang].timeDesc[timeMode.selectedIndex];
+timeDesc.innerText=text[lang].timeDesc[timeMode.selectedIndex];
 };
 
-zasi.onchange=()=>{
-document.getElementById("zasiDesc").innerText=text[lang].zasiDesc[zasi.selectedIndex];
-};
+// ===== 계산 로직 =====
 
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
@@ -270,88 +252,109 @@ const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 const baseDate = new Date("2026-04-10");
 const baseIndex = cycle.indexOf("갑인");
 
-// 날짜 보정
 function adjust(date,mode,zasi){
-  let d=new Date(date);
-  const h=d.getHours();
+let d=new Date(date);
+const h=d.getHours();
 
-  if(mode==="traditional"){
-    if(h>=23 && (zasi==="normal"||zasi==="early")) d.setDate(d.getDate()+1);
-    if(h<1 && zasi==="late") d.setDate(d.getDate()-1);
-  }
-  return d;
+if(mode==="traditional"){
+if(h>=23 && (zasi==="normal"||zasi==="early")) d.setDate(d.getDate()+1);
+if(h<1 && zasi==="late") d.setDate(d.getDate()-1);
+}
+return d;
 }
 
-// 일주
 function getDayPillar(date,mode,zasi){
-  const d=adjust(date,mode,zasi);
-  const diff=Math.floor((d-baseDate)/(1000*60*60*24));
-  let idx=(baseIndex+diff)%60;
-  if(idx<0) idx+=60;
-  return cycle[idx];
+const d=adjust(date,mode,zasi);
+const diff=Math.floor((d-baseDate)/(1000*60*60*24));
+let idx=(baseIndex+diff)%60;
+if(idx<0) idx+=60;
+return cycle[idx];
 }
 
-// 연주
 function getYearPillar(year){
-  const y=(year-4)%60;
-  return cycle[(y+60)%60];
+const y=(year-4)%60;
+return cycle[(y+60)%60];
 }
 
-// 시지
 function getHourBranch(hour){
-  return Math.floor((hour+1)/2)%12;
+return Math.floor((hour+1)/2)%12;
 }
 
-// 시천간
 function getHourStem(dayStemIndex,hourBranchIndex){
-  return (dayStemIndex*2 + hourBranchIndex)%10;
+return (dayStemIndex*2 + hourBranchIndex)%10;
 }
 
-// 시주
 function getHourPillar(date,dayStem){
-  const hour=date.getHours();
-  const hb=getHourBranch(hour);
-  const ds=stems.indexOf(dayStem);
-  const hs=getHourStem(ds,hb);
-  return stems[hs]+branches[hb];
+const hour=date.getHours();
+const hb=getHourBranch(hour);
+const ds=stems.indexOf(dayStem);
+const hs=getHourStem(ds,hb);
+return stems[hs]+branches[hb];
 }
 
-// 최종 계산
+function formatDate(date){
+return date.toLocaleDateString(lang==="ko"?"ko-KR":"en-US");
+}
+
+function updateToday(){
+const today=new Date();
+const modeVal=mode.value;
+const zasiVal=zasi.value||"normal";
+
+const todayPillar=getDayPillar(today,modeVal,zasiVal);
+
+result.innerHTML=
+(lang==="ko"
+? `오늘 (${formatDate(today)}) 일주: ${todayPillar}`
+: `Today (${formatDate(today)}) Day Pillar: ${todayPillar}`
+);
+}
+
+updateToday();
+
 function calc(){
 
-  const input=document.getElementById("birthDate").value;
-  if(!input) return alert("날짜 입력");
+const input=birthDate.value;
+if(!input) return alert(lang==="ko"?"날짜 입력":"Enter date");
 
-  let date=new Date(input);
+let date=new Date(input);
 
-  const mode=document.getElementById("mode").value;
-  const zasi=document.getElementById("zasi").value;
-  const timeMode=document.getElementById("timeMode").value;
+const modeVal=mode.value;
+const zasiVal=zasi.value||"normal";
+const timeModeVal=timeMode.value;
 
-  // 시간 반영
-  if(timeMode==="exact"){
-    const t=document.getElementById("exactTime").value;
-    if(t){
-      const [h,m]=t.split(":");
-      date.setHours(h,m);
-    }
-  }
+if(timeModeVal==="exact"){
+const t=exactTime.value;
+if(t){
+const [h,m]=t.split(":");
+date.setHours(parseInt(h),parseInt(m));
+}
+}
 
-  if(timeMode==="range"){
-    const h=document.getElementById("timeRange").value;
-    date.setHours(h);
-  }
+if(timeModeVal==="range"){
+date.setHours(parseInt(timeRange.value));
+}
 
-  // 계산
-  const day=getDayPillar(date,mode,zasi);
-  const year=getYearPillar(date.getFullYear());
-  const hour=getHourPillar(date,day[0]);
+if(timeModeVal==="none"){
+date.setHours(12);
+}
 
-  document.getElementById("result").innerHTML = `
-  <b>연주:</b> ${year}<br>
-  <b>일주:</b> ${day}<br>
-  <b>시주:</b> ${hour}
-  `;
+const day=getDayPillar(date,modeVal,zasiVal);
+const year=getYearPillar(date.getFullYear());
+const hour=getHourPillar(date,day[0]);
+
+result.innerHTML=`
+<div style="line-height:1.6">
+<b>${lang==="ko"?"연주":"Year"}:</b> ${year}<br>
+<span style="font-size:11px;">${lang==="ko"?"태어난 해의 기운":"Year energy"}</span><br><br>
+
+<b>${lang==="ko"?"일주":"Day"}:</b> ${day}<br>
+<span style="font-size:11px;">${lang==="ko"?"자신의 핵심 성격":"Core self"}</span><br><br>
+
+<b>${lang==="ko"?"시주":"Hour"}:</b> ${hour}<br>
+<span style="font-size:11px;">${lang==="ko"?"시간 기반 성향 / 후반 흐름":"Later life"}</span>
+</div>
+`;
 }
 </script>
 
