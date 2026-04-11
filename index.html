@@ -2,28 +2,19 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>사주 계산기</title>
+<title>Saju Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin:0;
-  background:#f2f2f2;
-  font-family:sans-serif;
-}
+body { margin:0; background:#f2f2f2; font-family:sans-serif; }
 .container {
-  max-width:420px;
-  margin:40px auto;
-  padding:20px;
-  border:1px solid black;
-  background:white;
+  max-width:420px; margin:40px auto; padding:20px;
+  border:1px solid black; background:white;
 }
 .block { margin-top:15px; }
 label { font-size:13px; display:block; margin-bottom:5px; }
 input, select, button, textarea {
-  width:100%;
-  padding:10px;
-  border:1px solid black;
+  width:100%; padding:10px; border:1px solid black;
   box-sizing:border-box;
 }
 button { margin-top:10px; background:black; color:white; }
@@ -35,48 +26,49 @@ button { margin-top:10px; background:black; color:white; }
 
 <div class="container">
 
-<button onclick="toggleLang()">🌐 한국어 / English</button>
+<button id="langBtn">🌐 한국어 / English</button>
 
-<h2 id="title">사주 계산기</h2>
+<h2 id="title"></h2>
 
 <div class="block">
-<label id="birthLabel">생년월일</label>
+<label id="birthLabel"></label>
 <input type="date" id="birthDate">
 </div>
 
 <div class="block">
-<label id="timeLabel">출생 시간</label>
+<label id="timeLabel"></label>
 
 <select id="timeMode">
-<option value="none">모름</option>
-<option value="exact">정확한 시간</option>
-<option value="range">시간대 선택</option>
+<option value="none"></option>
+<option value="exact"></option>
+<option value="range"></option>
 </select>
 
 <input type="time" id="exactTime" class="hidden">
 
 <select id="timeRange" class="hidden">
-<option value="23">자시 (23:00~01:00)</option>
-<option value="1">축시 (01:00~03:00)</option>
-<option value="3">인시 (03:00~05:00)</option>
-<option value="5">묘시 (05:00~07:00)</option>
-<option value="7">진시 (07:00~09:00)</option>
-<option value="9">사시 (09:00~11:00)</option>
-<option value="11">오시 (11:00~13:00)</option>
-<option value="13">미시 (13:00~15:00)</option>
-<option value="15">신시 (15:00~17:00)</option>
-<option value="17">유시 (17:00~19:00)</option>
-<option value="19">술시 (19:00~21:00)</option>
-<option value="21">해시 (21:00~23:00)</option>
+<option value="23">자시 (23~01)</option>
+<option value="1">축시 (01~03)</option>
+<option value="3">인시 (03~05)</option>
+<option value="5">묘시 (05~07)</option>
+<option value="7">진시 (07~09)</option>
+<option value="9">사시 (09~11)</option>
+<option value="11">오시 (11~13)</option>
+<option value="13">미시 (13~15)</option>
+<option value="15">신시 (15~17)</option>
+<option value="17">유시 (17~19)</option>
+<option value="19">술시 (19~21)</option>
+<option value="21">해시 (21~23)</option>
 </select>
+
 </div>
 
-<button onclick="calc()" id="calcBtn">계산</button>
+<button id="calcBtn"></button>
 
 <div id="result" style="margin-top:20px;"></div>
 
 <div style="margin-top:20px;">
-  <button onclick="copyPrompt()" id="copyBtn">프롬프트 복사</button>
+  <button id="copyBtn"></button>
   <textarea id="promptBox" style="margin-top:10px; height:150px;"></textarea>
 </div>
 
@@ -84,129 +76,146 @@ button { margin-top:10px; background:black; color:white; }
 
 <script>
 
-// ===== 언어 =====
-let lang = "ko";
+// ===== 상태 =====
+const state = {
+  lang: "ko",
+  result: null
+};
 
-function toggleLang(){
-  lang = (lang==="ko") ? "en" : "ko";
-  updateLang();
-}
+// ===== i18n =====
+const TEXT = {
+  ko: {
+    title:"사주 계산기",
+    birth:"생년월일",
+    time:"출생 시간",
+    calc:"계산",
+    copy:"프롬프트 복사",
+    modes:["모름","정확한 시간","시간대 선택"],
+    result:(d,h)=>`<b>일주:</b> ${d}<br><b>시주:</b> ${h}`,
+    prompt:(d,h,t)=>`나의 일간은 '${d}'이고, 시주는 '${h}'이야.
+오늘은 '${t}'이야.
 
-function updateLang(){
-  if(lang==="ko"){
-    title.innerText="사주 계산기";
-    birthLabel.innerText="생년월일";
-    timeLabel.innerText="출생 시간";
-    calcBtn.innerText="계산";
-    copyBtn.innerText="프롬프트 복사";
-  }else{
-    title.innerText="Saju Calculator";
-    birthLabel.innerText="Birth Date";
-    timeLabel.innerText="Birth Time";
-    calcBtn.innerText="Calculate";
-    copyBtn.innerText="Copy Prompt";
+연애, 인간관계, 금전, 직장/취업 운세 분석해줘.`
+  },
+  en: {
+    title:"Saju Calculator",
+    birth:"Birth Date",
+    time:"Birth Time",
+    calc:"Calculate",
+    copy:"Copy Prompt",
+    modes:["Unknown","Exact Time","Time Range"],
+    result:(d,h)=>`<b>Day:</b> ${d}<br><b>Hour:</b> ${h}`,
+    prompt:(d,h,t)=>`My day pillar is '${d}' and hour pillar is '${h}'.
+Today is '${t}'.
+
+Analyze love, relationships, money, and career.`
   }
+};
+
+// ===== DOM =====
+const el = {
+  title, birthLabel, timeLabel, calcBtn, copyBtn,
+  timeMode, exactTime, timeRange, result, promptBox
+};
+
+// ===== 초기화 =====
+function renderUI(){
+  const t = TEXT[state.lang];
+
+  el.title.innerText = t.title;
+  el.birthLabel.innerText = t.birth;
+  el.timeLabel.innerText = t.time;
+  el.calcBtn.innerText = t.calc;
+  el.copyBtn.innerText = t.copy;
+
+  [...el.timeMode.options].forEach((opt,i)=>{
+    opt.text = t.modes[i];
+  });
 }
 
-// ===== 기본 =====
+// ===== 이벤트 =====
+langBtn.onclick = ()=>{
+  state.lang = state.lang==="ko" ? "en" : "ko";
+  renderUI();
+};
+
+timeMode.onchange = ()=>{
+  exactTime.classList.toggle("hidden", timeMode.value!=="exact");
+  timeRange.classList.toggle("hidden", timeMode.value!=="range");
+};
+
+calcBtn.onclick = calc;
+copyBtn.onclick = copyPrompt;
+
+// ===== 계산 =====
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
 const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
-const baseDate = new Date(1984,1,2);
-baseDate.setHours(12,0,0,0);
+const baseUTC = Date.UTC(1984,1,2);
 
-// ===== 일주 =====
 function getDayPillar(y,m,d){
-  const target = new Date(y,m-1,d);
-  target.setHours(12,0,0,0);
-
-  const diff=Math.floor((target-baseDate)/(1000*60*60*24));
-  let idx=diff%60;
+  const target = Date.UTC(y,m-1,d);
+  const diff = Math.floor((target-baseUTC)/(1000*60*60*24));
+  let idx = diff%60;
   if(idx<0) idx+=60;
   return cycle[idx];
 }
 
-// ===== 시주 =====
-function getHourBranch(hour){
-  return Math.floor((hour+1)/2)%12;
-}
-function getHourStem(dayStemIndex,hourBranchIndex){
-  return (dayStemIndex*2 + hourBranchIndex)%10;
-}
 function getHourPillar(hour,dayStem){
-  const hb=getHourBranch(hour);
-  const ds=stems.indexOf(dayStem);
-  const hs=getHourStem(ds,hb);
+  const hb = Math.floor((hour+1)/2)%12;
+  const ds = stems.indexOf(dayStem);
+  const hs = (ds*2 + hb)%10;
   return stems[hs]+branches[hb];
 }
 
-// ===== UI =====
-timeMode.onchange=()=>{
-  exactTime.classList.toggle("hidden",timeMode.value!=="exact");
-  timeRange.classList.toggle("hidden",timeMode.value!=="range");
-};
-
-// ===== 계산 =====
 function calc(){
 
-  const input=birthDate.value;
-  if(!input) return alert("날짜 입력");
+  if(!birthDate.value) return;
 
-  const [y,m,d]=input.split("-").map(Number);
+  const [y,m,d]=birthDate.value.split("-").map(Number);
 
-  let hour=12;
+  let hour = 12;
 
   if(timeMode.value==="exact"){
-    const [h]=exactTime.value.split(":");
-    hour=parseInt(h);
+    hour = parseInt(exactTime.value.split(":")[0]);
   }
-
   if(timeMode.value==="range"){
-    hour=parseInt(timeRange.value);
+    hour = parseInt(timeRange.value);
   }
 
-  const dayP = getDayPillar(y,m,d);
-  const hourP = getHourPillar(hour,dayP[0]);
+  const day = getDayPillar(y,m,d);
+  const hourP = getHourPillar(hour,day[0]);
 
-  window.lastResult = {day:dayP, hour:hourP};
+  state.result = {day, hour:hourP};
 
-  if(lang==="ko"){
-    result.innerHTML=`<b>일주:</b> ${dayP}<br><b>시주:</b> ${hourP}`;
-  }else{
-    result.innerHTML=`<b>Day:</b> ${dayP}<br><b>Hour:</b> ${hourP}`;
-  }
-
-  // 🔥 자동 프롬프트 생성
-  promptBox.value = generatePrompt();
+  renderResult();
+  renderPrompt();
 }
 
-// ===== 프롬프트 =====
-function generatePrompt(){
+// ===== 출력 =====
+function renderResult(){
+  const t = TEXT[state.lang];
+  result.innerHTML = t.result(state.result.day, state.result.hour);
+}
 
-  if(!window.lastResult) return "";
-
-  const {day,hour} = window.lastResult;
+function renderPrompt(){
+  const t = TEXT[state.lang];
   const today = new Date().toISOString().split("T")[0];
 
-  if(lang==="ko"){
-    return `나의 일간은 '${day}'이고, 시주는 '${hour}'이야.
-오늘은 '${today}'이야.
-
-연애, 인간관계, 금전, 직장/취업 운세 분석해줘.`;
-  }else{
-    return `My day pillar is '${day}' and hour pillar is '${hour}'.
-Today is '${today}'.
-
-Analyze love, relationships, money, and career.`;
-  }
+  promptBox.value = t.prompt(
+    state.result.day,
+    state.result.hour,
+    today
+  );
 }
 
 function copyPrompt(){
-  navigator.clipboard.writeText(promptBox.value)
-    .then(()=> alert("복사됨"))
-    .catch(()=> alert("실패"));
+  navigator.clipboard.writeText(promptBox.value);
 }
+
+// 초기 실행
+renderUI();
 
 </script>
 
