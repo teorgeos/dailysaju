@@ -91,9 +91,13 @@ const TEXT = {
     calc:"계산",
     copy:"프롬프트 복사",
     modes:["모름","정확한 시간","시간대 선택"],
-    result:(d,h)=>`<b>일주:</b> ${d}<br><b>시주:</b> ${h}`,
-    prompt:(d,h,t)=>`나의 일간은 '${d}'이고, 시주는 '${h}'이야.
-오늘은 '${t}'이야.
+    result:(d,h,t,tp)=>`
+      <b>일주:</b> ${d}<br>
+      <b>시주:</b> ${h}<br><br>
+      <b>오늘 (${t}) 일주:</b> ${tp}
+    `,
+    prompt:(d,h,t,tp)=>`나의 일간은 '${d}'이고, 시주는 '${h}'이야.
+오늘은 '${t}'이고, 오늘 일주는 '${tp}'이야.
 
 연애, 인간관계, 금전, 직장/취업 운세 분석해줘.`
   },
@@ -104,9 +108,13 @@ const TEXT = {
     calc:"Calculate",
     copy:"Copy Prompt",
     modes:["Unknown","Exact Time","Time Range"],
-    result:(d,h)=>`<b>Day:</b> ${d}<br><b>Hour:</b> ${h}`,
-    prompt:(d,h,t)=>`My day pillar is '${d}' and hour pillar is '${h}'.
-Today is '${t}'.
+    result:(d,h,t,tp)=>`
+      <b>Day:</b> ${d}<br>
+      <b>Hour:</b> ${h}<br><br>
+      <b>Today (${t}) Day:</b> ${tp}
+    `,
+    prompt:(d,h,t,tp)=>`My day pillar is '${d}' and hour pillar is '${h}'.
+Today is '${t}', and today's day pillar is '${tp}'.
 
 Analyze love, relationships, money, and career.`
   }
@@ -118,7 +126,7 @@ const el = {
   timeMode, exactTime, timeRange, result, promptBox
 };
 
-// ===== 초기화 =====
+// ===== UI =====
 function renderUI(){
   const t = TEXT[state.lang];
 
@@ -162,6 +170,16 @@ function getDayPillar(y,m,d){
   return cycle[idx];
 }
 
+// 오늘 일주
+function getTodayPillar(){
+  const now = new Date();
+  return getDayPillar(
+    now.getFullYear(),
+    now.getMonth()+1,
+    now.getDate()
+  );
+}
+
 function getHourPillar(hour,dayStem){
   const hb = Math.floor((hour+1)/2)%12;
   const ds = stems.indexOf(dayStem);
@@ -169,6 +187,7 @@ function getHourPillar(hour,dayStem){
   return stems[hs]+branches[hb];
 }
 
+// ===== 실행 =====
 function calc(){
 
   if(!birthDate.value) return;
@@ -187,7 +206,10 @@ function calc(){
   const day = getDayPillar(y,m,d);
   const hourP = getHourPillar(hour,day[0]);
 
-  state.result = {day, hour:hourP};
+  const today = new Date().toISOString().split("T")[0];
+  const todayP = getTodayPillar();
+
+  state.result = {day, hour:hourP, today, todayP};
 
   renderResult();
   renderPrompt();
@@ -196,17 +218,23 @@ function calc(){
 // ===== 출력 =====
 function renderResult(){
   const t = TEXT[state.lang];
-  result.innerHTML = t.result(state.result.day, state.result.hour);
+
+  result.innerHTML = t.result(
+    state.result.day,
+    state.result.hour,
+    state.result.today,
+    state.result.todayP
+  );
 }
 
 function renderPrompt(){
   const t = TEXT[state.lang];
-  const today = new Date().toISOString().split("T")[0];
 
   promptBox.value = t.prompt(
     state.result.day,
     state.result.hour,
-    today
+    state.result.today,
+    state.result.todayP
   );
 }
 
