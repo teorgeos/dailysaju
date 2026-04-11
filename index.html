@@ -19,6 +19,13 @@ input, select, button, textarea {
 }
 button { margin-top:10px; background:black; color:white; }
 .hidden { display:none; }
+
+/* 복사 완료 텍스트 */
+.copy-msg {
+  text-align:center;
+  margin-top:5px;
+  font-size:12px;
+}
 </style>
 </head>
 
@@ -68,8 +75,12 @@ button { margin-top:10px; background:black; color:white; }
 <div id="result" style="margin-top:20px;"></div>
 
 <div style="margin-top:20px;">
-  <button id="copyBtn"></button>
-  <textarea id="promptBox" style="margin-top:10px; height:150px;"></textarea>
+  <textarea id="promptBox" style="height:150px;"></textarea>
+
+  <div id="copyArea" class="hidden">
+    <button id="copyBtn"></button>
+    <div id="copyMsg" class="copy-msg"></div>
+  </div>
 </div>
 
 </div>
@@ -90,6 +101,7 @@ const TEXT = {
     time:"출생 시간",
     calc:"계산",
     copy:"프롬프트 복사",
+    copied:"복사 완료",
     modes:["모름","정확한 시간","시간대 선택"],
     result:(d,h,t,tp)=>`
       <b>일주:</b> ${d}<br>
@@ -107,6 +119,7 @@ const TEXT = {
     time:"Birth Time",
     calc:"Calculate",
     copy:"Copy Prompt",
+    copied:"Copied",
     modes:["Unknown","Exact Time","Time Range"],
     result:(d,h,t,tp)=>`
       <b>Day:</b> ${d}<br>
@@ -122,8 +135,9 @@ Analyze love, relationships, money, and career.`
 
 // ===== DOM =====
 const el = {
-  title, birthLabel, timeLabel, calcBtn, copyBtn,
-  timeMode, exactTime, timeRange, result, promptBox
+  title, birthLabel, timeLabel, calcBtn,
+  timeMode, exactTime, timeRange, result, promptBox,
+  copyBtn, copyMsg, copyArea
 };
 
 // ===== UI =====
@@ -155,22 +169,22 @@ timeMode.onchange = ()=>{
 calcBtn.onclick = calc;
 copyBtn.onclick = copyPrompt;
 
-// ===== 계산 =====
+// ===== 핵심 계산 =====
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
 const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
-const baseUTC = Date.UTC(1984,1,2);
+// 🔥 핵심 수정 (정오 기준)
+const baseUTC = Date.UTC(1984,1,2,12);
 
 function getDayPillar(y,m,d){
-  const target = Date.UTC(y,m-1,d);
+  const target = Date.UTC(y,m-1,d,12);
   const diff = Math.floor((target-baseUTC)/(1000*60*60*24));
   let idx = diff%60;
   if(idx<0) idx+=60;
   return cycle[idx];
 }
 
-// 오늘 일주
 function getTodayPillar(){
   const now = new Date();
   return getDayPillar(
@@ -213,6 +227,9 @@ function calc(){
 
   renderResult();
   renderPrompt();
+
+  // 버튼 등장
+  copyArea.classList.remove("hidden");
 }
 
 // ===== 출력 =====
@@ -238,11 +255,18 @@ function renderPrompt(){
   );
 }
 
+// ===== 복사 =====
 function copyPrompt(){
   navigator.clipboard.writeText(promptBox.value);
+
+  el.copyMsg.innerText = TEXT[state.lang].copied;
+
+  setTimeout(()=>{
+    el.copyMsg.innerText = "";
+  },1500);
 }
 
-// 초기 실행
+// 초기화
 renderUI();
 
 </script>
