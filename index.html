@@ -137,9 +137,20 @@ Analyze love, relationships, money, and career.`
 
 // ===== DOM =====
 const el = {
-  title, birthLabel, timeLabel, calcBtn,
-  timeMode, exactTime, timeRange, result, promptBox,
-  copyBtn, copyMsg, copyArea
+  langBtn: document.getElementById("langBtn"),
+  title: document.getElementById("title"),
+  birthDate: document.getElementById("birthDate"),
+  birthLabel: document.getElementById("birthLabel"),
+  timeLabel: document.getElementById("timeLabel"),
+  calcBtn: document.getElementById("calcBtn"),
+  timeMode: document.getElementById("timeMode"),
+  exactTime: document.getElementById("exactTime"),
+  timeRange: document.getElementById("timeRange"),
+  result: document.getElementById("result"),
+  promptBox: document.getElementById("promptBox"),
+  copyBtn: document.getElementById("copyBtn"),
+  copyMsg: document.getElementById("copyMsg"),
+  copyArea: document.getElementById("copyArea")
 };
 
 // ===== UI =====
@@ -158,18 +169,18 @@ function renderUI(){
 }
 
 // ===== 이벤트 =====
-langBtn.onclick = ()=>{
+el.langBtn.onclick = ()=>{
   state.lang = state.lang==="ko" ? "en" : "ko";
   renderUI();
 };
 
-timeMode.onchange = ()=>{
-  exactTime.classList.toggle("hidden", timeMode.value!=="exact");
-  timeRange.classList.toggle("hidden", timeMode.value!=="range");
+el.timeMode.onchange = ()=>{
+  el.exactTime.classList.toggle("hidden", el.timeMode.value!=="exact");
+  el.timeRange.classList.toggle("hidden", el.timeMode.value!=="range");
 };
 
-calcBtn.onclick = calc;
-copyBtn.onclick = copyPrompt;
+el.calcBtn.onclick = calc;
+el.copyBtn.onclick = copyPrompt;
 
 // ===== 간지 변환 =====
 const map = {
@@ -213,17 +224,18 @@ function getHourPillar(hour,dayStem){
 // ===== 실행 =====
 function calc(){
 
-  if(!birthDate.value) return;
+  if(!el.birthDate.value) return;
 
-  const [y,m,d]=birthDate.value.split("-").map(Number);
+  const [y,m,d]=el.birthDate.value.split("-").map(Number);
 
   let hour = 12;
 
-  if(timeMode.value==="exact"){
-    hour = parseInt(exactTime.value.split(":")[0]);
+  if(el.timeMode.value==="exact"){
+    if(!el.exactTime.value) return;
+    hour = parseInt(el.exactTime.value.split(":")[0]);
   }
-  if(timeMode.value==="range"){
-    hour = parseInt(timeRange.value);
+  if(el.timeMode.value==="range"){
+    hour = parseInt(el.timeRange.value);
   }
 
   const day = getDayPillar(y,m,d);
@@ -237,14 +249,14 @@ function calc(){
   renderResult();
   renderPrompt();
 
-  copyArea.classList.remove("hidden");
+  el.copyArea.classList.remove("hidden");
 }
 
 // ===== 출력 =====
 function renderResult(){
   const t = TEXT[state.lang];
 
-  result.innerHTML = t.result(
+  el.result.innerHTML = t.result(
     state.result.day,
     state.result.hour,
     state.result.today,
@@ -255,7 +267,7 @@ function renderResult(){
 function renderPrompt(){
   const t = TEXT[state.lang];
 
-  promptBox.value = t.prompt(
+  el.promptBox.value = t.prompt(
     state.result.day,
     state.result.hour,
     state.result.today,
@@ -265,7 +277,7 @@ function renderPrompt(){
 
 // ===== 복사 =====
 function copyPrompt(){
-  navigator.clipboard.writeText(promptBox.value);
+  navigator.clipboard.writeText(el.promptBox.value);
 
   el.copyMsg.innerText = TEXT[state.lang].copied;
 
