@@ -5,15 +5,12 @@
 <title>사주 계산기</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=Diphylleia&display=swap" rel="stylesheet">
-
 <style>
 body {
   margin:0;
   background:#f2f2f2;
-  font-family:"Diphylleia", serif;
+  font-family:sans-serif;
 }
-
 .container {
   max-width:420px;
   margin:40px auto;
@@ -21,23 +18,15 @@ body {
   border:1px solid black;
   background:white;
 }
-
 .block { margin-top:15px; }
-
 label { font-size:13px; display:block; margin-bottom:5px; }
-
 input, select, button, textarea {
   width:100%;
   padding:10px;
   border:1px solid black;
-  font-family:"Diphylleia", serif;
   box-sizing:border-box;
 }
-
-button { margin-top:15px; background:black; color:white; }
-
-.desc { font-size:11px; margin-top:5px; line-height:1.4; }
-
+button { margin-top:10px; background:black; color:white; }
 .hidden { display:none; }
 </style>
 </head>
@@ -46,26 +35,18 @@ button { margin-top:15px; background:black; color:white; }
 
 <div class="container">
 
-<h2>사주 계산기</h2>
+<button onclick="toggleLang()">🌐 한국어 / English</button>
+
+<h2 id="title">사주 계산기</h2>
 
 <div class="block">
-<label>생년월일</label>
+<label id="birthLabel">생년월일</label>
 <input type="date" id="birthDate">
 </div>
 
 <div class="block">
-<label>날짜 계산 방식</label>
-<select id="mode">
-<option value="modern">일반 (00:00 기준)</option>
-<option value="traditional">전통 (23:00 기준)</option>
-</select>
-<div class="desc">
-👉 밤 11시 이후 출생이면 전통 선택 권장
-</div>
-</div>
+<label id="timeLabel">출생 시간</label>
 
-<div class="block">
-<label>출생 시간</label>
 <select id="timeMode">
 <option value="none">모름</option>
 <option value="exact">정확한 시간</option>
@@ -88,27 +69,14 @@ button { margin-top:15px; background:black; color:white; }
 <option value="19">술시 (19:00~21:00)</option>
 <option value="21">해시 (21:00~23:00)</option>
 </select>
-
-<div class="desc">
-👉 시간 모르면 “모름” 선택 (낮 12시 처리)
-</div>
 </div>
 
-<div class="block hidden" id="zasiBlock">
-<label>자시 처리</label>
-<select id="zasi">
-<option value="normal">자시 통합</option>
-<option value="early">조자시</option>
-<option value="late">야자시</option>
-</select>
-</div>
-
-<button onclick="calc()">계산</button>
+<button onclick="calc()" id="calcBtn">계산</button>
 
 <div id="result" style="margin-top:20px;"></div>
 
 <div style="margin-top:20px;">
-  <button onclick="copyPrompt()">프롬프트 복사</button>
+  <button onclick="copyPrompt()" id="copyBtn">프롬프트 복사</button>
   <textarea id="promptBox" style="margin-top:10px; height:150px;"></textarea>
 </div>
 
@@ -116,51 +84,45 @@ button { margin-top:15px; background:black; color:white; }
 
 <script>
 
+// ===== 언어 =====
+let lang = "ko";
+
+function toggleLang(){
+  lang = (lang==="ko") ? "en" : "ko";
+  updateLang();
+}
+
+function updateLang(){
+  if(lang==="ko"){
+    title.innerText="사주 계산기";
+    birthLabel.innerText="생년월일";
+    timeLabel.innerText="출생 시간";
+    calcBtn.innerText="계산";
+    copyBtn.innerText="프롬프트 복사";
+  }else{
+    title.innerText="Saju Calculator";
+    birthLabel.innerText="Birth Date";
+    timeLabel.innerText="Birth Time";
+    calcBtn.innerText="Calculate";
+    copyBtn.innerText="Copy Prompt";
+  }
+}
+
 // ===== 기본 =====
 const stems=["갑","을","병","정","무","기","경","신","임","계"];
 const branches=["자","축","인","묘","진","사","오","미","신","유","술","해"];
 const cycle = Array.from({length:60},(_,i)=>stems[i%10]+branches[i%12]);
 
-const baseDate = new Date("1984-02-02T00:00:00");
-const baseIndex = 0;
-
-// ===== 연주 =====
-function getYear(date){
-  const y = date.getFullYear();
-  const ipchun = new Date(y,1,4);
-  return date < ipchun ? y-1 : y;
-}
-
-function getYearPillar(date){
-  const year = getYear(date);
-  const idx = (year - 4) % 60;
-  return cycle[(idx+60)%60];
-}
-
-// ===== 월주 =====
-function getMonthPillar(date, yearStemIndex){
-  const monthBranchIndex = (date.getMonth()+2)%12;
-  const monthStemIndex = (yearStemIndex*2 + monthBranchIndex)%10;
-  return stems[monthStemIndex]+branches[monthBranchIndex];
-}
-
-// ===== 자시 =====
-function adjust(date,mode,zasi){
-  let d=new Date(date);
-  const h=d.getHours();
-
-  if(mode==="traditional"){
-    if(h>=23 && (zasi==="normal"||zasi==="early")) d.setDate(d.getDate()+1);
-    if(h<1 && zasi==="late") d.setDate(d.getDate()-1);
-  }
-  return d;
-}
+const baseDate = new Date(1984,1,2);
+baseDate.setHours(12,0,0,0);
 
 // ===== 일주 =====
-function getDayPillar(date,mode,zasi){
-  const d=adjust(date,mode,zasi);
-  const diff=Math.floor((d-baseDate)/(1000*60*60*24));
-  let idx=(baseIndex + diff)%60;
+function getDayPillar(y,m,d){
+  const target = new Date(y,m-1,d);
+  target.setHours(12,0,0,0);
+
+  const diff=Math.floor((target-baseDate)/(1000*60*60*24));
+  let idx=diff%60;
   if(idx<0) idx+=60;
   return cycle[idx];
 }
@@ -169,13 +131,10 @@ function getDayPillar(date,mode,zasi){
 function getHourBranch(hour){
   return Math.floor((hour+1)/2)%12;
 }
-
 function getHourStem(dayStemIndex,hourBranchIndex){
   return (dayStemIndex*2 + hourBranchIndex)%10;
 }
-
-function getHourPillar(date,dayStem){
-  const hour=date.getHours();
+function getHourPillar(hour,dayStem){
   const hb=getHourBranch(hour);
   const ds=stems.indexOf(dayStem);
   const hs=getHourStem(ds,hb);
@@ -188,82 +147,65 @@ timeMode.onchange=()=>{
   timeRange.classList.toggle("hidden",timeMode.value!=="range");
 };
 
-mode.onchange=()=>{
-  zasiBlock.classList.toggle("hidden",mode.value!=="traditional");
-};
-
 // ===== 계산 =====
 function calc(){
 
   const input=birthDate.value;
   if(!input) return alert("날짜 입력");
 
-  let date=new Date(input);
+  const [y,m,d]=input.split("-").map(Number);
 
-  const modeVal=mode.value;
-  const zasiVal=zasi.value||"normal";
-  const timeModeVal=timeMode.value;
+  let hour=12;
 
-  if(timeModeVal==="exact"){
-    const t=exactTime.value;
-    if(t){
-      const [h,m]=t.split(":");
-      date.setHours(h,m);
-    }
+  if(timeMode.value==="exact"){
+    const [h]=exactTime.value.split(":");
+    hour=parseInt(h);
   }
 
-  if(timeModeVal==="range"){
-    date.setHours(parseInt(timeRange.value));
+  if(timeMode.value==="range"){
+    hour=parseInt(timeRange.value);
   }
 
-  if(timeModeVal==="none"){
-    date.setHours(12);
+  const dayP = getDayPillar(y,m,d);
+  const hourP = getHourPillar(hour,dayP[0]);
+
+  window.lastResult = {day:dayP, hour:hourP};
+
+  if(lang==="ko"){
+    result.innerHTML=`<b>일주:</b> ${dayP}<br><b>시주:</b> ${hourP}`;
+  }else{
+    result.innerHTML=`<b>Day:</b> ${dayP}<br><b>Hour:</b> ${hourP}`;
   }
 
-  const yearP = getYearPillar(date);
-  const yearStemIndex = stems.indexOf(yearP[0]);
-  const monthP = getMonthPillar(date, yearStemIndex);
-  const dayP = getDayPillar(date,modeVal,zasiVal);
-  const hourP = getHourPillar(date,dayP[0]);
-
-  window.lastResult = { year:yearP, month:monthP, day:dayP, hour:hourP };
-
-  result.innerHTML=`
-  <b>연주:</b> ${yearP}<br><br>
-  <b>월주:</b> ${monthP}<br><br>
-  <b>일주:</b> ${dayP}<br><br>
-  <b>시주:</b> ${hourP}
-  `;
+  // 🔥 자동 프롬프트 생성
+  promptBox.value = generatePrompt();
 }
 
 // ===== 프롬프트 =====
 function generatePrompt(){
 
-  if(!window.lastResult) return "먼저 계산하세요";
+  if(!window.lastResult) return "";
 
-  const {year, month, day, hour} = window.lastResult;
-
+  const {day,hour} = window.lastResult;
   const today = new Date().toISOString().split("T")[0];
 
-  return `나의 일간은 '${day}'이고, 연주는 '${year}', 월주는 '${month}', 시주는 '${hour}'이야.
+  if(lang==="ko"){
+    return `나의 일간은 '${day}'이고, 시주는 '${hour}'이야.
 오늘은 '${today}'이야.
 
-내 운세를 아래 항목으로 나눠서 구체적으로 분석해줘:
-- 연애운
-- 인간관계
-- 금전운
-- 직장/취업운
+연애, 인간관계, 금전, 직장/취업 운세 분석해줘.`;
+  }else{
+    return `My day pillar is '${day}' and hour pillar is '${hour}'.
+Today is '${today}'.
 
-가능하면 현실적인 조언 중심으로 써줘.`;
+Analyze love, relationships, money, and career.`;
+  }
 }
 
 function copyPrompt(){
-  const prompt = generatePrompt();
-  document.getElementById("promptBox").value = prompt;
-
-  navigator.clipboard.writeText(prompt)
+  navigator.clipboard.writeText(promptBox.value)
     .then(()=> alert("복사됨"))
-    .catch(()=> alert("복사 실패"));
+    .catch(()=> alert("실패"));
 }
 
 </script>
